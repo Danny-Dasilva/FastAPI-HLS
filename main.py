@@ -1,12 +1,12 @@
 import uvicorn
 import json
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
-
+import ffmpeg
+import aiofiles
 
 
 
@@ -26,14 +26,20 @@ def sanitize(item: str) -> str:
 @app.get("/video/{fileName}")
 async def video(response: Response, fileName: str):
     response.headers["Content-Type"] = "application/x-mpegURL"
-    return FileResponse("video/" + sanitize(fileName), filename=fileName)
+    return FileResponse("./video/" + sanitize(fileName), filename=fileName)
 
-@app.get("/video/{video_name}/{segment_number}.ts", response_class=FileResponse)
-async def get_segment(video_name: str, segment_number: str):
-    segment = "video" / sanitize(video_name) / f"{sanitize(segment_number)}.ts"
-    if not segment.exists():
-        return HTMLResponse(status_code=404)
-    return segment
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile):
+    async with aiofiles.open(f"./video/{file.filename}", 'wb') as out_file:
+        content = await file.read()  # async read
+        await out_file.write(content)
+    
+    ffmpeg.input(f"video/{file.filename}").output('./video/output.m3u8', vcodec="libx264",acodec="aac", format='hls', start_number=0, hls_time=10, hls_list_size=0, audio_bitrate="128k").run()
+   
+    return {"filename": file.filename,
+    "fileb_content_type": file.content_type}
+
+
 
 # @app.get("/markers")
 # async def markers(response: Response, ts_start: float = -1.0):
