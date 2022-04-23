@@ -7,7 +7,7 @@
     <body>
         <h2>{{ video_name }}</h2>
         <video id=vid1 class="video-js" controls>
-            <source src="/video/output.m3u8" type="application/x-mpegURL">
+            <source src="/video/{{ video_name }}" type="application/x-mpegURL">
         </video>
 
         <script src="https://vjs.zencdn.net/7.17.0/video.js" crossorigin="anonymous"></script>
