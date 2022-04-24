@@ -1,7 +1,7 @@
 import uvicorn
 import json
-from fastapi import FastAPI, Response, File, UploadFile, Request
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Response, File, UploadFile, Request, Depends
+
 from starlette.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -14,22 +14,23 @@ from fastapi.responses import JSONResponse
 
 templates = Jinja2Templates(directory="static")
 app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+class SanatizedPathParam(str):
+    """
+    TODO Document
+    """
+
+    def __new__(cls, file_name: str):
+        return file_name.replace("\\", "").replace("/", "")
 
 
-def sanitize(item: str) -> str:
-    """Make sure they can't do a directory transversal attack"""
-    return item.replace("\\", "").replace("/", "")
+# def sanitize(item: str) -> str:
+#     """Make sure they can't do a directory transversal attack"""
+#     return item.replace("\\", "").replace("/", "")
 
 
 @app.get("/")
-async def videos():
+async def get_videos():
     data = {}
     for file in os.listdir(r"./video"):
         if file.endswith(".m3u8"):
@@ -37,16 +38,16 @@ async def videos():
     return JSONResponse(content=data)
 
 
-@app.get("/video/{fileName}")
-async def video(response: Response, fileName: str):
+@app.get("/video/{file_name}")
+async def stream_video(response: Response, file_name: SanatizedPathParam = Depends()):
     response.headers["Content-Type"] = "application/x-mpegURL"
-    return FileResponse("./video/" + sanitize(fileName), filename=fileName)
+    return FileResponse(f"./video/{file_name}", filename=file_name)
 
 
-@app.get("/watch/{fileName}")
-async def video(request: Request, fileName: str):
+@app.get("/watch/{file_name}")
+async def watch_video(request: Request, file_name: SanatizedPathParam = Depends()):
     return templates.TemplateResponse(
-        f"index.html", {"request": request, "video_name": fileName}
+        f"index.html", {"request": request, "video_name": file_name}
     )
 
 
