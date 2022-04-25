@@ -1,11 +1,20 @@
 import uvicorn
 import json
-from fastapi import FastAPI, Response, File, UploadFile, Request, Depends
+from fastapi import (
+    FastAPI,
+    Response,
+    File,
+    UploadFile,
+    Request,
+    Depends,
+    BackgroundTasks,
+)
 
 from starlette.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import ffmpeg
+
 import aiofiles
 import os
 from pathlib import Path
@@ -14,6 +23,7 @@ from fastapi.responses import JSONResponse
 
 templates = Jinja2Templates(directory="static")
 app = FastAPI()
+
 
 class SanatizedPathParam(str):
     """
@@ -51,11 +61,7 @@ async def watch_video(request: Request, file_name: SanatizedPathParam = Depends(
     )
 
 
-@app.post("/uploadfile/")
-async def create_upload_file(file: UploadFile):
-    async with aiofiles.open(f"./video/{file.filename}", "wb") as out_file:
-        content = await file.read()  # async read
-        await out_file.write(content)
+def ffmpeg_conversion(file: UploadFile):
     ffmpeg.input(f"video/{file.filename}").output(
         f"./video/{Path(file.filename).stem}.m3u8",
         vcodec="libx264",
@@ -70,6 +76,13 @@ async def create_upload_file(file: UploadFile):
         audio_bitrate="128k",
     ).run()
 
+
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile, background_tasks: BackgroundTasks):
+    async with aiofiles.open(f"./video/{file.filename}", "wb") as out_file:
+        content = await file.read()  # async read
+        await out_file.write(content)
+    background_tasks.add_task(ffmpeg_conversion, file)
     return {"filename": file.filename, "fileb_content_type": file.content_type}
 
 
