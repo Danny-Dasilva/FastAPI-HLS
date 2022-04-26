@@ -24,25 +24,26 @@ from fastapi.responses import JSONResponse
 templates = Jinja2Templates(directory="static")
 app = FastAPI()
 
-
+base_path = "./videos/"
 class SanatizedPathParam(str):
     """
     TODO Document
     """
-
     def __new__(cls, file_name: str):
         return file_name.replace("\\", "").replace("/", "")
 
 
-# def sanitize(item: str) -> str:
-#     """Make sure they can't do a directory transversal attack"""
-#     return item.replace("\\", "").replace("/", "")
+@app.post("/create_directory")
+async def create_directory(folder_name: SanatizedPathParam = Depends()):
+    path = base_path + folder_name
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 
 @app.get("/")
 async def get_videos():
     data = {}
-    for file in os.listdir(r"./video"):
+    for file in os.listdir(r"./videos"):
         if file.endswith(".m3u8"):
             data[file] = f"http://localhost:8081/watch/{file}"
     return JSONResponse(content=data)
@@ -51,7 +52,7 @@ async def get_videos():
 @app.get("/video/{file_name}")
 async def stream_video(response: Response, file_name: SanatizedPathParam = Depends()):
     response.headers["Content-Type"] = "application/x-mpegURL"
-    return FileResponse(f"./video/{file_name}", filename=file_name)
+    return FileResponse(f"./videos/{file_name}", filename=file_name)
 
 
 @app.get("/watch/{file_name}")
@@ -62,8 +63,8 @@ async def watch_video(request: Request, file_name: SanatizedPathParam = Depends(
 
 
 def ffmpeg_conversion(file: UploadFile):
-    ffmpeg.input(f"video/{file.filename}").output(
-        f"./video/{Path(file.filename).stem}.m3u8",
+    ffmpeg.input(f"videos/{file.filename}").output(
+        f"./videos/{Path(file.filename).stem}.m3u8",
         vcodec="libx264",
         acodec="aac",
         bitrate="3000k",
@@ -79,7 +80,7 @@ def ffmpeg_conversion(file: UploadFile):
 
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile, background_tasks: BackgroundTasks):
-    async with aiofiles.open(f"./video/{file.filename}", "wb") as out_file:
+    async with aiofiles.open(f"./videos/{file.filename}", "wb") as out_file:
         content = await file.read()  # async read
         await out_file.write(content)
     background_tasks.add_task(ffmpeg_conversion, file)
