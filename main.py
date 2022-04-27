@@ -8,13 +8,16 @@ from fastapi import (
     Request,
     Depends,
     BackgroundTasks,
+    Query,
+    HTTPException,
 )
-
+import glob
+from pydantic import BaseModel
 from starlette.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import ffmpeg
-
+from pydantic import Field
 import aiofiles
 import os
 from pathlib import Path
@@ -23,18 +26,87 @@ from fastapi.responses import JSONResponse
 
 templates = Jinja2Templates(directory="static")
 app = FastAPI()
-
+global test
 base_path = "./videos/"
-class SanatizedPathParam(str):
+test = next(os.walk(base_path))[1]
+
+
+# class SanatizedPathParam(str):
+#     """
+#     TODO Document
+#     """
+
+#     def __new__(
+#         cls,
+#         path: str = Query(
+#             "test",
+#             title="The description of the item",
+#         ),
+#     ):
+#         return path.replace("\\", "").replace("/", "")
+
+from typing import Union
+
+
+class PlatformParam(str):
     """
     TODO Document
     """
-    def __new__(cls, file_name: str):
-        return file_name.replace("\\", "").replace("/", "")
+
+    _type = Union[str, dict]
+
+    def __new__(cls, platform: _type):
+        # _platform = cls.find_platform(platform)
+        # if _platform:
+        #     set_tag_if_empty("platform", _platform)
+        return str.__new__(cls, "1")
+
+    @classmethod
+    def find_platform(cls, platform: _type):
+        """
+
+        Args:
+            platform:
+
+        Returns:
+
+        """
+        try:
+            return next(os.walk("."))[1]
+        except ValueError:
+            pass
+        # try:
+        #     return (
+        #         getattr(config.PLATFORMS, platform.lower(), None)
+        #         or getattr(config.PLATFORMS, platform.upper(), None)
+        #         or getattr(config.PLATFORMS, platform)
+        #     ).value
+        # except AttributeError:
+        #     raise HTTPException(422, f"{platform} is not a supported platform.")
+
+
+class SanatizedPathParam(BaseModel):
+    """
+    TODO Document
+    """
+
+    path: str
+
+    @classmethod
+    def inject(
+        cls,
+        path: str = Query(
+            "",
+            description=("Text to explain this value"),
+        ),
+    ):
+        return path.replace("\\", "").replace("/", "")
 
 
 @app.post("/create_directory")
-async def create_directory(folder_name: SanatizedPathParam = Depends()):
+async def create_directory(
+    folder_name: SanatizedPathParam = Depends(SanatizedPathParam.inject),
+):
     path = base_path + folder_name
     if not os.path.exists(path):
         os.makedirs(path)
@@ -78,9 +150,35 @@ def ffmpeg_conversion(file: UploadFile):
     ).run()
 
 
+from enum import Enum
+
+
+
+class Param(str):
+    """
+    TODO Document
+    """
+
+    def __new__(
+        cls,
+        path: Enum =
+        # Query(
+        #     "test",
+        #     title="The description of the item",
+        # ),
+        Query("scripts", enum=test),
+    ):
+        
+        return path
+
+
 @app.post("/uploadfile/")
-async def create_upload_file(file: UploadFile, background_tasks: BackgroundTasks):
-    async with aiofiles.open(f"./videos/{file.filename}", "wb") as out_file:
+async def create_upload_file(
+    file: UploadFile,
+    background_tasks: BackgroundTasks,
+    folder: Param = Depends(),
+):
+    async with aiofiles.open(f"./videos/{folder}/{file.filename}", "wb") as out_file:
         content = await file.read()  # async read
         await out_file.write(content)
     background_tasks.add_task(ffmpeg_conversion, file)
