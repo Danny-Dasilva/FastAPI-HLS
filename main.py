@@ -11,6 +11,8 @@ from fastapi import (
     Query,
     HTTPException,
 )
+from pathlib import Path
+from typing import Optional
 import glob
 from pydantic import BaseModel
 from starlette.responses import FileResponse, HTMLResponse
@@ -28,7 +30,6 @@ templates = Jinja2Templates(directory="static")
 app = FastAPI()
 global test
 base_path = "./videos/"
-test = next(os.walk(base_path))[1]
 
 
 # class SanatizedPathParam(str):
@@ -115,9 +116,10 @@ async def create_directory(
 @app.get("/")
 async def get_videos():
     data = {}
-    for file in os.listdir(r"./videos"):
-        if file.endswith(".m3u8"):
-            data[file] = f"http://localhost:8081/watch/{file}"
+    files =  list(Path("./videos/").rglob("*.m3u8"))
+    for file in files:
+        filepath = os.path.relpath(file, base_path)
+        data[file.stem] = f"http://localhost:8081/watch/{filepath}"
     return JSONResponse(content=data)
 
 
@@ -134,9 +136,9 @@ async def watch_video(request: Request, file_name: SanatizedPathParam = Depends(
     )
 
 
-def ffmpeg_conversion(file: UploadFile):
-    ffmpeg.input(f"videos/{file.filename}").output(
-        f"./videos/{Path(file.filename).stem}.m3u8",
+def ffmpeg_conversion(path, file: UploadFile):
+    ffmpeg.input(path).output(
+       f"{Path(path).with_suffix('')}.m3u8",
         vcodec="libx264",
         acodec="aac",
         bitrate="3000k",
@@ -150,38 +152,39 @@ def ffmpeg_conversion(file: UploadFile):
     ).run()
 
 
-from enum import Enum
 
 
 
-class Param(str):
+class UploadParam(str):
     """
     TODO Document
     """
 
     def __new__(
         cls,
-        path: Enum =
-        # Query(
-        #     "test",
-        #     title="The description of the item",
-        # ),
-        Query("scripts", enum=test),
+        path: Optional[str] =
+        Query(
+            "",
+            title="The description of the item",
+        ),
     ):
-        
-        return path
+        if path in next(os.walk(base_path))[1]:
+            return path
+        else:
+            return ""        
 
 
 @app.post("/uploadfile/")
 async def create_upload_file(
     file: UploadFile,
     background_tasks: BackgroundTasks,
-    folder: Param = Depends(),
+    folder: UploadParam = Depends(),
 ):
-    async with aiofiles.open(f"./videos/{folder}/{file.filename}", "wb") as out_file:
+    path = f"./videos/{folder}/{file.filename}"
+    async with aiofiles.open(path, "wb") as out_file:
         content = await file.read()  # async read
         await out_file.write(content)
-    background_tasks.add_task(ffmpeg_conversion, file)
+    background_tasks.add_task(ffmpeg_conversion, path, file)
     return {"filename": file.filename, "fileb_content_type": file.content_type}
 
 
