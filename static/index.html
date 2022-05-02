@@ -5,9 +5,10 @@
         <title>Streamer</title>
     </head>
     <body>
+        <h2>Folder {{ folder_name }}</h2>
         <h2>{{ video_name }}</h2>
         <video id=vid1 class="video-js" controls>
-            <source src="/video/{{ video_name }}" type="application/x-mpegURL">
+            <source src="/video/{{folder_name}}/{{ video_name }}" type="application/x-mpegURL">
         </video>
 
         <script src="https://vjs.zencdn.net/7.17.0/video.js" crossorigin="anonymous"></script>

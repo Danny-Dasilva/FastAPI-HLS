@@ -130,6 +130,6 @@ dmypy.json
 
 
 ##ME
-video/*.ts
-video/*.mp4
-video/*.m3u8
+videos/**/*.ts
+videos/**/*.mp4
+videos/**/*.m3u8

@@ -11,6 +11,7 @@ from fastapi import (
     Query,
     HTTPException,
 )
+from fastapi import Path as PathParam
 from pathlib import Path
 from typing import Optional
 import glob
@@ -26,9 +27,10 @@ from pathlib import Path
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
+  
+
 templates = Jinja2Templates(directory="static")
 app = FastAPI()
-global test
 base_path = "./videos/"
 
 
@@ -46,44 +48,24 @@ base_path = "./videos/"
 #     ):
 #         return path.replace("\\", "").replace("/", "")
 
-from typing import Union
 
-
-class PlatformParam(str):
+class UploadParam(str):
     """
     TODO Document
     """
 
-    _type = Union[str, dict]
-
-    def __new__(cls, platform: _type):
-        # _platform = cls.find_platform(platform)
-        # if _platform:
-        #     set_tag_if_empty("platform", _platform)
-        return str.__new__(cls, "1")
-
-    @classmethod
-    def find_platform(cls, platform: _type):
-        """
-
-        Args:
-            platform:
-
-        Returns:
-
-        """
-        try:
-            return next(os.walk("."))[1]
-        except ValueError:
-            pass
-        # try:
-        #     return (
-        #         getattr(config.PLATFORMS, platform.lower(), None)
-        #         or getattr(config.PLATFORMS, platform.upper(), None)
-        #         or getattr(config.PLATFORMS, platform)
-        #     ).value
-        # except AttributeError:
-        #     raise HTTPException(422, f"{platform} is not a supported platform.")
+    def __new__(
+        cls,
+        path: Optional[str] =
+        Query(
+            "",
+            title="The description of the item",
+        ),
+    ):
+        if path in next(os.walk(base_path))[1]:
+            return path
+        else:
+            return ""      
 
 
 class SanatizedPathParam(BaseModel):
@@ -96,7 +78,7 @@ class SanatizedPathParam(BaseModel):
     @classmethod
     def inject(
         cls,
-        path: str = Query(
+        path: str = PathParam(
             "",
             description=("Text to explain this value"),
         ),
@@ -123,16 +105,17 @@ async def get_videos():
     return JSONResponse(content=data)
 
 
-@app.get("/video/{file_name}")
-async def stream_video(response: Response, file_name: SanatizedPathParam = Depends()):
+@app.get("/video/{directory_name}/{file_name}")
+async def stream_video(response: Response, directory_name,file_name):
     response.headers["Content-Type"] = "application/x-mpegURL"
-    return FileResponse(f"./videos/{file_name}", filename=file_name)
+    path = f"{directory_name}/{file_name}"
+    return FileResponse(f"./videos/{path}", filename=file_name)
 
 
-@app.get("/watch/{file_name}")
-async def watch_video(request: Request, file_name: SanatizedPathParam = Depends()):
+@app.get("/watch/{directory_name}/{file_name}")
+async def watch_video(request: Request,directory_name, file_name):
     return templates.TemplateResponse(
-        f"index.html", {"request": request, "video_name": file_name}
+        f"index.html", {"request": request, "folder_name": directory_name, "video_name": file_name}
     )
 
 
@@ -155,23 +138,6 @@ def ffmpeg_conversion(path, file: UploadFile):
 
 
 
-class UploadParam(str):
-    """
-    TODO Document
-    """
-
-    def __new__(
-        cls,
-        path: Optional[str] =
-        Query(
-            "",
-            title="The description of the item",
-        ),
-    ):
-        if path in next(os.walk(base_path))[1]:
-            return path
-        else:
-            return ""        
 
 
 @app.post("/uploadfile/")
