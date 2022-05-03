@@ -105,11 +105,11 @@ async def get_videos():
     return JSONResponse(content=data)
 
 
-@app.get("/video/{directory_name}/{file_name}")
-async def stream_video(response: Response, directory_name,file_name):
+@app.get("/video/{directory_name}/{path:path}")
+async def stream_video(response: Response, directory_name,path):
     response.headers["Content-Type"] = "application/x-mpegURL"
-    path = f"{directory_name}/{file_name}"
-    return FileResponse(f"./videos/{path}", filename=file_name)
+    path = f"{directory_name}/{path}"
+    return FileResponse(f"./videos/{path}", filename=path)
 
 
 @app.get("/watch/{directory_name}/{file_name}")

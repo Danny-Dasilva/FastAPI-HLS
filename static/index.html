@@ -12,9 +12,10 @@
         </video>
 
         <script src="https://vjs.zencdn.net/7.17.0/video.js" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-hls/5.4.0/videojs-contrib-hls.min.js"></script>
         <script>
             window.onload = function () {
-                videojs('vid1');
+                videojs('vid1',  {width: 640, height: 480});
             }
         </script>
     </body>
