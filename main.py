@@ -11,8 +11,8 @@ from fastapi import (
     Query,
     HTTPException,
 )
+import re
 import subprocess
-from fastapi import Path as PathParam
 from pathlib import Path
 from typing import Optional
 import glob
@@ -21,7 +21,6 @@ from starlette.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import ffmpeg
-from pydantic import Field
 import aiofiles
 import os
 from pathlib import Path
@@ -82,8 +81,9 @@ async def get_videos():
     data = {}
     files = list(Path("./videos/").rglob("*.m3u8"))
     for file in files:
-        filepath = os.path.relpath(file, base_path)
-        data[file.stem] = f"http://localhost:8081/watch/{filepath}"
+        if not re.search("[_]{3,}", str(file)):
+            filepath = os.path.relpath(file, base_path)
+            data[file.stem] = f"http://localhost:8081/watch/{filepath}"
     return JSONResponse(content=data)
 
 
@@ -100,7 +100,6 @@ async def watch_video(request: Request, directory_name, file_name):
         f"index.html",
         {"request": request, "folder_name": directory_name, "video_name": file_name},
     )
-
 
 def ffmpeg_conversion(path, file: UploadFile):
     ffmpeg.input(path).output(
@@ -134,18 +133,19 @@ def ffmpeg_conversion(path):
     ).run()
 
 
-def adaptive_bitrate_ffmpeg(path):
-    command = f"""ffmpeg -i {path} -c:v libx264 -crf 20 -g 5 -keyint_min 5 -sc_threshold 0 -hls_time 4 -hls_flags independent_segments \
-  -b:v:0 800k -filter:v:0 scale=640:360 \
+def adaptive_bitrate_ffmpeg(folder, path):
+    command = f"""ffmpeg -i {Path(path).name} -c:v libx264 -crf 20 -g 5 -keyint_min 5 -sc_threshold 0 -hls_time 4 -hls_flags independent_segments+discont_start \
+    -b:v:0 800k -filter:v:0 scale=640:360 \
   -b:v:1 1200k -filter:v:1 scale=842:480 \
   -b:v:2 2400k -filter:v:2 scale=1280:720 \
   -b:v:3 4800k -filter:v:3 scale=1920:1080 \
   -map 0:v -map 0:v -map 0:v -map 0:v -f hls -var_stream_map 'v:0 v:1 v:2 v:3' \
   -master_pl_name {Path(path).stem}.m3u8 \
-  -hls_segment_filename {Path(path).with_suffix('')}_%v/data%03d.ts \
+  -hls_segment_filename {Path(path).stem}___%v/data%03d.ts \
   -use_localtime_mkdir 1 \
-  {Path(path).with_suffix('')}_%v.m3u8"""
-    subprocess.call(command, shell=True)
+  {Path(path).stem}___%v.m3u8"""
+    # Path(path).with_suffix('')
+    subprocess.call(command, shell=True, cwd=f"./videos/{folder}")
 
 
 @app.post("/upload/")
@@ -172,7 +172,7 @@ async def upload_adaptive_bitrate(
     async with aiofiles.open(path, "wb") as out_file:
         content = await file.read()  # async read
         await out_file.write(content)
-    background_tasks.add_task(adaptive_bitrate_ffmpeg, path)
+    background_tasks.add_task(adaptive_bitrate_ffmpeg, folder,path)
     return {"filename": file.filename, "fileb_content_type": file.content_type}
 
 
