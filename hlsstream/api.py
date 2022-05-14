@@ -42,7 +42,7 @@ def main():
     uvicorn.run(
         "hlsstream.api:app",
         host="0.0.0.0",
-        port=5000,
+        port=8081,
         log_level="debug",
         reload=True,
         debug=True,
