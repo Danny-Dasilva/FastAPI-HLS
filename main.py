@@ -136,15 +136,14 @@ def ffmpeg_conversion(path):
 def adaptive_bitrate_ffmpeg(folder, path):
     command = f"""ffmpeg -i {Path(path).name} -c:v libx264 -crf 20 -g 5 -keyint_min 5 -sc_threshold 0 -hls_time 4 -hls_flags independent_segments+discont_start \
     -b:v:0 800k -filter:v:0 scale=640:360 \
-  -b:v:1 1200k -filter:v:1 scale=842:480 \
-  -b:v:2 2400k -filter:v:2 scale=1280:720 \
-  -b:v:3 4800k -filter:v:3 scale=1920:1080 \
-  -map 0:v -map 0:v -map 0:v -map 0:v -f hls -var_stream_map 'v:0 v:1 v:2 v:3' \
-  -master_pl_name {Path(path).stem}.m3u8 \
-  -hls_segment_filename {Path(path).stem}___%v/data%03d.ts \
-  -use_localtime_mkdir 1 \
-  {Path(path).stem}___%v.m3u8"""
-    # Path(path).with_suffix('')
+    -b:v:1 1200k -filter:v:1 scale=842:480 \
+    -b:v:2 2400k -filter:v:2 scale=1280:720 \
+    -b:v:3 4800k -filter:v:3 scale=1920:1080 \
+    -map 0:v -map 0:v -map 0:v -map 0:v -f hls -var_stream_map 'v:0 v:1 v:2 v:3' \
+    -master_pl_name {Path(path).stem}.m3u8 \
+    -hls_segment_filename {Path(path).stem}___%v/data%03d.ts \
+    -use_localtime_mkdir 1 \
+    {Path(path).stem}___%v.m3u8"""
     subprocess.call(command, shell=True, cwd=f"./videos/{folder}")
 
 
@@ -170,7 +169,7 @@ async def upload_adaptive_bitrate(
 ):
     path = f"./videos/{folder}/{file.filename}"
     async with aiofiles.open(path, "wb") as out_file:
-        content = await file.read()  # async read
+        content = await file.read()
         await out_file.write(content)
     background_tasks.add_task(adaptive_bitrate_ffmpeg, folder,path)
     return {"filename": file.filename, "fileb_content_type": file.content_type}
