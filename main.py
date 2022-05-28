@@ -1,5 +1,4 @@
 import uvicorn
-import json
 from fastapi import (
     FastAPI,
     Response,
@@ -15,7 +14,6 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Optional
-import glob
 from pydantic import BaseModel
 from starlette.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -141,11 +139,11 @@ def adaptive_bitrate_ffmpeg(folder, path):
     # -b:v:2 2400k -filter:v:2 scale=1280:720 \
     # -b:v:3 4800k -filter:v:3 scale=1920:1080 \
     # -map 0:v -map 0:v -map 0:v -map 0:v -f hls -var_stream_map 'v:0 v:1 v:2 v:3' \
+    # -use_localtime_mkdir 1 \
     # -master_pl_name {Path(path).stem}.m3u8 \
     # -hls_segment_filename {Path(path).stem}___%v/data%03d.ts \
-    # -use_localtime_mkdir 1 \
     # {Path(path).stem}___%v.m3u8"""
-    command = f"""ffmpeg -i {Path(path).name} -c:v libx264 -crf 20 -g 5 -keyint_min 5 -sc_threshold 0 -hls_time 6 -hls_flags independent_segments \
+    command = f"""ffmpeg -i {Path(path).name} -c:v libx264 -crf 20 -g 5 -keyint_min 5 -sc_threshold 0 -hls_time 6 -hls_playlist_type vod -hls_flags independent_segments \
     -b:v:0 800k -filter:v:0 scale=640:360 \
     -b:v:1 1200k -filter:v:1 scale=842:480 \
     -b:v:2 2400k -filter:v:2 scale=1280:720 \
@@ -154,8 +152,7 @@ def adaptive_bitrate_ffmpeg(folder, path):
     -map 0:v -map 0:v -map 0:v -map 0:v -f hls -var_stream_map 'v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3' \
     -master_pl_name {Path(path).stem}.m3u8 \
     -hls_segment_filename {Path(path).stem}___%v/data%03d.ts \
-    -use_localtime_mkdir 1 \
-
+    -strftime 1 -strftime_mkdir 1 \
     {Path(path).stem}___%v.m3u8"""
     subprocess.call(command, shell=True, cwd=f"./videos/{folder}")
 

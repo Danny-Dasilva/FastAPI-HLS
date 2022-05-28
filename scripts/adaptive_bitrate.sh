@@ -11,3 +11,5 @@ ffmpeg -hide_banner -y -i beach.mkv \
 
 
 https://blog.zazu.berlin/internet-programmierung/mpeg-dash-and-hls-adaptive-bitrate-streaming-with-ffmpeg.html
+
+https://ffmpeg.org/ffmpeg-formats.html
