@@ -3,39 +3,8 @@
     <head>
         <link href="https://vjs.zencdn.net/7.17.0/video-js.css" rel="stylesheet"/>
         <title>Streamer</title>
-        <style>
-            .vjs-resolution-button .vjs-icon-placeholder:before {
-  content: '\f110';
-  font-family: VideoJS;
-  font-weight: normal;
-  font-style: normal;
-  font-size: 1.8em;
-  line-height: 1.67em;
-}
-
-.vjs-resolution-button .vjs-resolution-button-label {
-  font-size: 1em;
-  line-height: 3em;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-  box-sizing: inherit;
-}
-
-.vjs-resolution-button .vjs-menu .vjs-menu-content {
-  width: 4em;
-  left: 50%; /* Center the menu, in it's parent */
-  margin-left: -2em; /* half of width, to center */
-}
-
-.vjs-resolution-button .vjs-menu li {
-  text-transform: none;
-  font-size: 1em;
-}
-        </style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/videojs-resolution-switcher-vjs7@1.0.0/videojs-resolution-switcher.css">
+        
     </head>
     <body>
         <h2>Folder {{ folder_name }}</h2>
@@ -46,11 +15,11 @@
 
         <script src="https://vjs.zencdn.net/7.17.0/video.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-hls/5.4.0/videojs-contrib-hls.min.js"></script>
-        <!-- <script src="https://rawgit.com/kmoskwiak/videojs-resolution-switcher/dev/lib/videojs-resolution-switcher.js"></script> -->
+        <script src="https://rawgit.com/kmoskwiak/videojs-resolution-switcher/dev/lib/videojs-resolution-switcher.js"></script>
         <script>
             var options = {
-                width: 640,
-                height: 360,
+                width: 1280,
+                height: 720,
                 plugins: {
                     videoJsResolutionSwitcher: {
                     default: 480,
