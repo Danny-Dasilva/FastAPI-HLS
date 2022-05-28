@@ -15,7 +15,7 @@ ffmpeg -i song.mp4 \
 -hls_playlist_type vod \
 -hls_flags independent_segments \
 -hls_segment_type mpegts \
--hls_segment_filename stream_%v/data%02d.ts \
+-hls_segment_filename stream_%v/data%03d.ts \
 -master_pl_name master.m3u8 \
--strftime 1 -strftime_mkdir 1 \
+-strftime_mkdir 1 \
 -var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2" stream_%v.m3u8

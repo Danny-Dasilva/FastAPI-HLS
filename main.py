@@ -151,8 +151,8 @@ def adaptive_bitrate_ffmpeg(folder, path):
     -map a:0 -map a:0 -map a:0 -map a:0 -c:a aac -b:a 128k -ac 1 -ar 44100\
     -map 0:v -map 0:v -map 0:v -map 0:v -f hls -var_stream_map 'v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3' \
     -master_pl_name {Path(path).stem}.m3u8 \
-    -hls_segment_filename {Path(path).stem}___%v/data%03d.ts \
-    -strftime 1 -strftime_mkdir 1 \
+    -hls_segment_filename {Path(path).stem}___%v/data%02d.ts \
+    -strftime_mkdir 1 \
     {Path(path).stem}___%v.m3u8"""
     subprocess.call(command, shell=True, cwd=f"./videos/{folder}")
 
