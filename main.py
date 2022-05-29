@@ -25,9 +25,23 @@ from pathlib import Path
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
+tags_metadata = [
+    {
+        "name": "folders",
+        "description": "Create and Delete **folders** to store your videos in",
+    },
+    {
+        "name": "upload",
+        "description": "Manage items. So _fancy_ they have their own docs.",
+        "externalDocs": {
+            "description": "Items external docs",
+            "url": "https://fastapi.tiangolo.com/",
+        },
+    },
+]
 
 templates = Jinja2Templates(directory="static")
-app = FastAPI()
+app = FastAPI(openapi_tags=tags_metadata)
 base_path = "./videos/"
 
 
@@ -65,7 +79,7 @@ class SanatizedPathParam(BaseModel):
         return path.replace("\\", "").replace("/", "")
 
 
-@app.post("/create_directory")
+@app.post("/create_directory", tags=["folders"])
 async def create_directory(
     folder_name: SanatizedPathParam = Depends(SanatizedPathParam.inject),
 ):
@@ -73,7 +87,8 @@ async def create_directory(
     if not os.path.exists(path):
         os.makedirs(path)
 
-@app.delete("/delete_directory")
+
+@app.delete("/delete_directory", tags=["folders"])
 async def delete_directory(
     folder_name: FolderParam = Depends(),
 ):
@@ -105,6 +120,7 @@ async def watch_video(request: Request, directory_name, file_name):
         f"index.html",
         {"request": request, "folder_name": directory_name, "video_name": file_name},
     )
+
 
 def ffmpeg_conversion(path, file: UploadFile):
     ffmpeg.input(path).output(
@@ -153,7 +169,12 @@ def adaptive_bitrate_ffmpeg(folder, path):
     subprocess.call(command, shell=True, cwd=f"./videos/{folder}")
 
 
-@app.post("/upload/")
+@app.post(
+    "/upload/",
+    summary="Upload a standard video file",
+    description="Will create a standard hls encoding of the input video",
+    tags=["upload"],
+)
 async def create_upload_file(
     file: UploadFile,
     background_tasks: BackgroundTasks,
@@ -167,7 +188,12 @@ async def create_upload_file(
     return {"filename": file.filename, "fileb_content_type": file.content_type}
 
 
-@app.post("/upload_adaptive_bitrate/")
+@app.post(
+    "/upload_adaptive_bitrate/",
+    summary="Upload a file served in an adaptive bitrate format",
+    description="Will create an hls encoding of the input video in the following resolutions 360,480,720,1080",
+    tags=["upload"],
+)
 async def upload_adaptive_bitrate(
     file: UploadFile,
     background_tasks: BackgroundTasks,
@@ -177,7 +203,7 @@ async def upload_adaptive_bitrate(
     async with aiofiles.open(path, "wb") as out_file:
         content = await file.read()
         await out_file.write(content)
-    background_tasks.add_task(adaptive_bitrate_ffmpeg, folder,path)
+    background_tasks.add_task(adaptive_bitrate_ffmpeg, folder, path)
     return {"filename": file.filename, "fileb_content_type": file.content_type}
 
 
