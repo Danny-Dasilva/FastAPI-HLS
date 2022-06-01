@@ -32,7 +32,7 @@ tags_metadata = [
     },
     {
         "name": "upload",
-        "description": "Manage items. So _fancy_ they have their own docs.",
+        "description": "Upload and encode video files",
         "externalDocs": {
             "description": "Items external docs",
             "url": "https://fastapi.tiangolo.com/",
@@ -96,7 +96,9 @@ async def delete_directory(
     os.rmdir(path)
 
 
-@app.get("/")
+@app.get(
+    "/", summary="Root", description="Displays video filename and link", 
+)
 async def get_videos():
     data = {}
     files = list(Path("./videos/").rglob("*.m3u8"))
@@ -107,14 +109,24 @@ async def get_videos():
     return JSONResponse(content=data)
 
 
-@app.get("/video/{directory_name}/{path:path}")
+@app.get(
+    "/video/{directory_name}/{path:path}",
+    summary="Stream HLS",
+    description="Returns a File response for currently stored HLS encoded video files",
+    tags=["videos"],
+)
 async def stream_video(response: Response, directory_name, path):
     response.headers["Content-Type"] = "application/x-mpegURL"
     path = f"{directory_name}/{path}"
     return FileResponse(f"./videos/{path}", filename=path)
 
 
-@app.get("/watch/{directory_name}/{file_name}")
+@app.get(
+    "/watch/{directory_name}/{file_name}",
+    summary="Watch Videos",
+    description="Servers HTML to display hosted videos",
+    tags=["videos"],
+)
 async def watch_video(request: Request, directory_name, file_name):
     return templates.TemplateResponse(
         f"index.html",
@@ -136,23 +148,6 @@ def ffmpeg_conversion(path, file: UploadFile):
         hls_list_size=0,
         audio_bitrate="128k",
     ).run()
-
-
-def ffmpeg_conversion(path):
-    ffmpeg.input(path).output(
-        f"{Path(path).with_suffix('')}.m3u8",
-        vcodec="libx264",
-        acodec="aac",
-        bitrate="3000k",
-        vbufsize="6000k",
-        vmaxrate="6000k",
-        format="hls",
-        start_number=0,
-        hls_time=10,
-        hls_list_size=0,
-        audio_bitrate="128k",
-    ).run()
-
 
 def adaptive_bitrate_ffmpeg(folder, path):
     command = f"""ffmpeg -i {Path(path).name} -c:v libx264 -crf 20 -g 5 -keyint_min 5 -sc_threshold 0 -hls_time 6 -hls_playlist_type vod -hls_flags independent_segments \
@@ -211,7 +206,7 @@ def main():
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8081,
+        port=8000,
         log_level="debug",
         reload=True,
         debug=True,
