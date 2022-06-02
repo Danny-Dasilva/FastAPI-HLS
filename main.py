@@ -2,7 +2,6 @@ import uvicorn
 from fastapi import (
     FastAPI,
     Response,
-    File,
     UploadFile,
     Request,
     Depends,
@@ -15,8 +14,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel
-from starlette.responses import FileResponse, HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import FileResponse
 from fastapi.responses import JSONResponse
 import ffmpeg
 import aiofiles
@@ -105,7 +103,7 @@ async def get_videos():
     for file in files:
         if not re.search("[_]{3,}", str(file)):
             filepath = os.path.relpath(file, base_path)
-            data[file.stem] = f"http://localhost:8081/watch/{filepath}"
+            data[file.stem] = f"http://0.0.0.0:8000/watch/{filepath}"
     return JSONResponse(content=data)
 
 
