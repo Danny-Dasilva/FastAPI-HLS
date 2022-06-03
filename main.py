@@ -86,7 +86,14 @@ async def create_directory(
         os.makedirs(path)
 
 
-@app.delete("/delete_directory", tags=["folders"])
+@app.get("/folders", tags=["folders"])
+async def list_directory():
+    return next(os.walk(base_path))[1]
+
+
+@app.delete(
+    "/delete_directory", description="List Current Directories", tags=["folders"]
+)
 async def delete_directory(
     folder_name: FolderParam = Depends(),
 ):
@@ -95,7 +102,9 @@ async def delete_directory(
 
 
 @app.get(
-    "/", summary="Root", description="Displays video filename and link", 
+    "/",
+    summary="Root",
+    description="Displays video filename and link",
 )
 async def get_videos():
     data = {}
@@ -103,7 +112,7 @@ async def get_videos():
     for file in files:
         if not re.search("[_]{3,}", str(file)):
             filepath = os.path.relpath(file, base_path)
-            data[file.stem] = f"http://0.0.0.0:8000/watch/{filepath}"
+            data[file.stem] = f"http://0.0.0.0:8080/watch/{filepath}"
     return JSONResponse(content=data)
 
 
@@ -132,7 +141,7 @@ async def watch_video(request: Request, directory_name, file_name):
     )
 
 
-def ffmpeg_conversion(path, file: UploadFile):
+def ffmpeg_conversion(path):
     ffmpeg.input(path).output(
         f"{Path(path).with_suffix('')}.m3u8",
         vcodec="libx264",
@@ -146,6 +155,7 @@ def ffmpeg_conversion(path, file: UploadFile):
         hls_list_size=0,
         audio_bitrate="128k",
     ).run()
+
 
 def adaptive_bitrate_ffmpeg(folder, path):
     command = f"""ffmpeg -i {Path(path).name} -c:v libx264 -crf 20 -g 5 -keyint_min 5 -sc_threshold 0 -hls_time 6 -hls_playlist_type vod -hls_flags independent_segments \
@@ -204,7 +214,7 @@ def main():
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8080,
         log_level="debug",
         reload=True,
         debug=True,
