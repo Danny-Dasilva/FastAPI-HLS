@@ -77,6 +77,11 @@ class SanatizedPathParam(BaseModel):
         return path.replace("\\", "").replace("/", "")
 
 
+@app.get("/folders", tags=["folders"])
+async def list_directory():
+    return next(os.walk(base_path))[1]
+
+
 @app.post("/create_directory", tags=["folders"])
 async def create_directory(
     folder_name: SanatizedPathParam = Depends(SanatizedPathParam.inject),
@@ -84,11 +89,6 @@ async def create_directory(
     path = base_path + folder_name
     if not os.path.exists(path):
         os.makedirs(path)
-
-
-@app.get("/folders", tags=["folders"])
-async def list_directory():
-    return next(os.walk(base_path))[1]
 
 
 @app.delete(
@@ -99,21 +99,6 @@ async def delete_directory(
 ):
     path = base_path + folder_name
     os.rmdir(path)
-
-
-@app.get(
-    "/",
-    summary="Root",
-    description="Displays video filename and link",
-)
-async def get_videos():
-    data = {}
-    files = list(Path("./videos/").rglob("*.m3u8"))
-    for file in files:
-        if not re.search("[_]{3,}", str(file)):
-            filepath = os.path.relpath(file, base_path)
-            data[file.stem] = f"http://0.0.0.0:8080/watch/{filepath}"
-    return JSONResponse(content=data)
 
 
 @app.get(
@@ -208,6 +193,21 @@ async def upload_adaptive_bitrate(
         await out_file.write(content)
     background_tasks.add_task(adaptive_bitrate_ffmpeg, folder, path)
     return {"filename": file.filename, "fileb_content_type": file.content_type}
+
+
+@app.get(
+    "/",
+    summary="Root",
+    description="Displays video filename and link",
+)
+async def get_videos():
+    data = {}
+    files = list(Path("./videos/").rglob("*.m3u8"))
+    for file in files:
+        if not re.search("[_]{3,}", str(file)):
+            filepath = os.path.relpath(file, base_path)
+            data[file.stem] = f"http://0.0.0.0:8080/watch/{filepath}"
+    return JSONResponse(content=data)
 
 
 def main():
